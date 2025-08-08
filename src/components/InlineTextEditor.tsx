@@ -9,17 +9,19 @@ interface InlineTextEditorProps {
   onFocus?: () => void;
   onBlur?: () => void;
   multiline?: boolean;
+  autoFocus?: boolean;
 }
 
 const InlineTextEditor: React.FC<InlineTextEditorProps> = ({
   value,
   onChange,
-  placeholder = 'Enter text...',
+  placeholder = 'Click to edit...',
   className = '',
   isEditing,
   onFocus,
   onBlur,
-  multiline = false
+  multiline = false,
+  autoFocus = false
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -29,11 +31,15 @@ const InlineTextEditor: React.FC<InlineTextEditorProps> = ({
   }, [value]);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
+    if ((isEditing || autoFocus) && inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      // Place cursor at the end of the text
+      if (inputRef.current instanceof HTMLInputElement || inputRef.current instanceof HTMLTextAreaElement) {
+        const length = inputRef.current.value.length;
+        inputRef.current.setSelectionRange(length, length);
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, autoFocus]);
 
   const handleFocus = () => {
     onFocus?.();
@@ -105,4 +111,4 @@ const InlineTextEditor: React.FC<InlineTextEditorProps> = ({
   return <input type="text" {...commonProps} />;
 };
 
-export default InlineTextEditor; 
+export default InlineTextEditor;

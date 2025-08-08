@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Plus, Trash2, Sparkles, GripVertical } from 'lucide-react';
 import { Template } from '../App';
 import { ResumeData } from './ResumeEditor';
 import TemplatePreview from './TemplatePreview';
+import DraggableContainer from './DraggableContainer';
+import DraggableSection from './DraggableSection';
 
 interface EditableResumePreviewProps {
   template: Template;
@@ -10,6 +12,7 @@ interface EditableResumePreviewProps {
   onUpdateResumeData: (data: ResumeData) => void;
   activeSection: string;
   editMode: boolean;
+  sectionOrder?: string[];
 }
 
 const EditableResumePreview: React.FC<EditableResumePreviewProps> = ({
@@ -17,9 +20,23 @@ const EditableResumePreview: React.FC<EditableResumePreviewProps> = ({
   resumeData,
   onUpdateResumeData,
   activeSection,
-  editMode
+  editMode,
+  sectionOrder
 }) => {
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [localSectionOrder, setLocalSectionOrder] = useState<string[]>(
+    sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'training', 'languages', 'leadership', 'publications', 'hackathons', 'custom']
+  );
+  
+  useEffect(() => {
+    if (sectionOrder) {
+      setLocalSectionOrder(sectionOrder);
+    }
+  }, [sectionOrder]);
+
+  const handleSectionReorder = useCallback((newOrder: string[]) => {
+    setLocalSectionOrder(newOrder);
+  }, []);
 
   const handlePersonalInfoChange = useCallback((field: string, value: string) => {
     onUpdateResumeData({
@@ -402,15 +419,22 @@ const EditableResumePreview: React.FC<EditableResumePreviewProps> = ({
 
   return (
     <div className="min-h-full">
-      {editMode ? renderEditableTemplate() : (
-        <TemplatePreview
-          template={template}
-          resumeData={resumeData}
-          onUpdateResumeData={onUpdateResumeData}
-          activeSection={activeSection}
-          editMode={false}
-        />
-      )}
+      <DraggableContainer items={localSectionOrder} onReorder={handleSectionReorder}>
+        {editMode ? renderEditableTemplate() : (
+          localSectionOrder.map((sectionId) => (
+            <DraggableSection key={sectionId} id={sectionId}>
+              <TemplatePreview
+                template={template}
+                resumeData={resumeData}
+                onUpdateResumeData={onUpdateResumeData}
+                activeSection={activeSection}
+                editMode={false}
+                sectionId={sectionId}
+              />
+            </DraggableSection>
+          ))
+        )}
+      </DraggableContainer>
       
       {editMode && (
         <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border p-4 max-w-sm">
@@ -420,6 +444,7 @@ const EditableResumePreview: React.FC<EditableResumePreviewProps> = ({
             <li>• Press Enter to save (single line)</li>
             <li>• Press Escape to cancel</li>
             <li>• Click + buttons to add new items</li>
+            <li>• Drag sections to reorder them</li>
           </ul>
         </div>
       )}

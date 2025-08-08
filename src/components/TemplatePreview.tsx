@@ -5,16 +5,21 @@ import { ResumeData } from './ResumeEditor';
 interface TemplatePreviewProps {
   template: Template;
   resumeData: ResumeData;
-  onUpdateResumeData: (data: ResumeData) => void;
-  activeSection: string;
-  editMode: boolean;
+  onUpdateResumeData?: (data: ResumeData) => void;
+  activeSection?: string;
+  editMode?: boolean;
   isPreview?: boolean;
+  sectionId?: string;
 }
 
 const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   template,
   resumeData,
-  isPreview = false
+  onUpdateResumeData,
+  activeSection,
+  editMode = false,
+  isPreview = false,
+  sectionId
 }) => {
   const baseScale = isPreview ? 'text-[4px] leading-[5px]' : '';
   const headerScale = isPreview ? 'text-[6px] leading-[7px]' : '';
@@ -25,71 +30,92 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   const previewHeaderScale = isPreview ? 'text-[4px] leading-[5px]' : '';
   const previewTitleScale = isPreview ? 'text-[3.5px] leading-[4.5px]' : '';
 
+  // Helper function to render only the specified section or all sections if no sectionId is provided
+  const shouldRenderSection = (section: string) => {
+    return !sectionId || sectionId === section;
+  };
+
   const renderClassicChronoTemplate = () => (
     <div className={`bg-white shadow-lg ${isPreview ? 'w-full h-full' : 'max-w-[8.5in] mx-auto'} ${isPreview ? previewScale : baseScale}`}>
       <div className={`${isPreview ? 'p-1' : 'p-8'}`}>
         {/* Header */}
-        <div className={`text-center border-b ${isPreview ? 'pb-0.5 mb-1' : 'pb-6 mb-8'}`}>
-          <h1 className={`font-bold text-gray-900 ${isPreview ? previewHeaderScale : 'text-3xl'} ${isPreview ? 'mb-0.5' : 'mb-2'}`}>
-            {resumeData.personalInfo.name}
-          </h1>
-          <div className="text-gray-600">
-            <div>{resumeData.personalInfo.email} • {resumeData.personalInfo.phone}</div>
-            <div>{resumeData.personalInfo.location}</div>
+        {shouldRenderSection('personal') && (
+          <div className={`text-center border-b ${isPreview ? 'pb-0.5 mb-1' : 'pb-6 mb-8'}`}>
+            <h1 className={`font-bold text-gray-900 ${isPreview ? previewHeaderScale : 'text-3xl'} ${isPreview ? 'mb-0.5' : 'mb-2'}`}>
+              {resumeData.personalInfo.name}
+            </h1>
+            <div className="text-gray-600">
+              <div>
+                {resumeData.personalInfo.email}
+                {resumeData.personalInfo.phone && resumeData.personalInfo.email && <span> • </span>}
+                {resumeData.personalInfo.phone && <span>{resumeData.personalInfo.phone}</span>}
+              </div>
+              <div>{resumeData.personalInfo.location}</div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Summary */}
-        <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
-          <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
-            Professional Summary
-          </h3>
-          <p className="text-gray-700 leading-relaxed">{resumeData.summary}</p>
-        </div>
+        {shouldRenderSection('summary') && (
+          <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+            <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+              Professional Summary
+            </h3>
+            <p className="text-gray-700 leading-relaxed">{resumeData.summary}</p>
+          </div>
+        )}
 
         {/* Experience */}
-        <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
-          <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
-            Experience
-          </h3>
-          {resumeData.experience.slice(0, isPreview ? 1 : resumeData.experience.length).map((exp, index) => (
-            <div key={exp.id} className={isPreview ? 'mb-0.5' : 'mb-4'}>
-              <div className={`flex justify-between items-start ${isPreview ? 'mb-0.5' : 'mb-2'}`}>
-                <div>
-                  <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{exp.title}</h4>
-                  <div className="text-gray-600 font-medium">{exp.company}</div>
+        {shouldRenderSection('experience') && (
+          <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+            <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+              Experience
+            </h3>
+            {resumeData.experience.slice(0, isPreview ? 1 : resumeData.experience.length).map((exp, index) => (
+              <div key={exp.id} className={isPreview ? 'mb-0.5' : 'mb-4'}>
+                <div className={`flex justify-between items-start ${isPreview ? 'mb-0.5' : 'mb-2'}`}>
+                  <div>
+                    <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{exp.title}</h4>
+                    <div className="text-gray-600 font-medium">{exp.company}</div>
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                    {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
+                  </div>
                 </div>
-                <div className="text-gray-500 text-sm">
-                  {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
-                </div>
+                <ul className={`space-y-1 ${isPreview ? 'ml-1' : 'ml-4'}`}>
+                  {exp.bullets.slice(0, isPreview ? 1 : exp.bullets.length).map((bullet, bulletIndex) => (
+                    <li key={bulletIndex} className="flex items-start">
+                      <span className="text-gray-400 mr-2 mt-1">•</span>
+                      <span className="text-gray-700">{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className={`space-y-1 ${isPreview ? 'ml-1' : 'ml-4'}`}>
-                {exp.bullets.slice(0, isPreview ? 1 : exp.bullets.length).map((bullet, bulletIndex) => (
-                  <li key={bulletIndex} className="flex items-start">
-                    <span className="text-gray-400 mr-2 mt-1">•</span>
-                    <span className="text-gray-700">{bullet}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Education */}
-        <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
-          <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
-            Education
-          </h3>
-          {resumeData.education.map((edu, index) => (
-            <div key={edu.id}>
-              <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{edu.degree}</h4>
-              <div className="text-gray-600">{edu.school} {edu.graduationDate && `• ${edu.graduationDate}`}</div>
-            </div>
-          ))}
-        </div>
+        {shouldRenderSection('education') && (
+          <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+            <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+              Education
+            </h3>
+            {resumeData.education.map((edu, index) => (
+              <div key={edu.id}>
+                <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{edu.degree}</h4>
+                <div className="text-gray-600">
+                  {edu.school}
+                  {edu.school && edu.graduationDate && <span> • </span>}
+                  {edu.graduationDate && <span>{edu.graduationDate}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Projects */}
-        {resumeData.projects && resumeData.projects.length > 0 && (
+        {shouldRenderSection('projects') && resumeData.projects && resumeData.projects.length > 0 && (
           <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
             <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
               Projects
@@ -127,7 +153,11 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
             {resumeData.certifications.map((cert, index) => (
               <div key={cert.id} className={isPreview ? 'mb-0.5' : 'mb-2'}>
                 <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{cert.name}</h4>
-                <div className="text-gray-600">{cert.issuer} {cert.year && `• ${cert.year}`}</div>
+                <div className="text-gray-600">
+                  {cert.issuer}
+                  {cert.issuer && cert.year && <span> • </span>}
+                  {cert.year && <span>{cert.year}</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -171,21 +201,90 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
         )}
 
         {/* Skills */}
-        <div>
-          <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
-            Skills
-          </h3>
-          <div className={`flex flex-wrap ${isPreview ? 'gap-0.5' : 'gap-2'}`}>
-            {resumeData.skills.slice(0, isPreview ? 3 : resumeData.skills.length).map((skill, index) => (
-              <span key={index} className={`bg-gray-100 text-gray-700 rounded-full ${isPreview ? 'px-0.5 py-0.5' : 'px-3 py-1'}`}>
-                {skill}
-              </span>
-            ))}
+        {shouldRenderSection('skills') && (
+          <div>
+            <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+              Skills
+            </h3>
+            <div className={`flex flex-wrap ${isPreview ? 'gap-0.5' : 'gap-2'}`}>
+              {resumeData.skills.slice(0, isPreview ? 3 : resumeData.skills.length).map((skill, index) => (
+                <span key={index} className={`bg-gray-100 text-gray-700 rounded-full ${isPreview ? 'px-0.5 py-0.5' : 'px-3 py-1'}`}>
+                  {skill}
+                </span>
+              ))}
+            </div>
           </div>
+        )}
+    {/* Leadership */}
+          {shouldRenderSection('leadership') && resumeData.leadership && resumeData.leadership.length > 0 && (
+            <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+              <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+                Leadership
+              </h3>
+              {resumeData.leadership.map((item) => (
+                <div key={item.id} className={isPreview ? 'mb-0.5' : 'mb-2'}>
+                  <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{item.role}</h4>
+                  <div className="text-gray-600">{item.organization}</div>
+                  <p className="text-gray-700">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Publications */}
+          {shouldRenderSection('publications') && resumeData.publications && resumeData.publications.length > 0 && (
+            <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+              <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+                Publications
+              </h3>
+              {resumeData.publications.map((item) => (
+                <div key={item.id} className={isPreview ? 'mb-0.5' : 'mb-2'}>
+                  <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{item.title}</h4>
+                  <div className="text-gray-600">{item.link}</div>
+                  <p className="text-gray-700">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Hackathons */}
+          {shouldRenderSection('hackathons') && resumeData.hackathons && resumeData.hackathons.length > 0 && (
+            <div className={isPreview ? 'mb-0.5' : 'mb-6'}>
+              <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+                Hackathons
+              </h3>
+              {resumeData.hackathons.map((item) => (
+                <div key={item.id} className={isPreview ? 'mb-0.5' : 'mb-2'}>
+                  <div className="flex justify-between">
+                    <h4 className={`font-semibold text-gray-900 ${isPreview ? previewTitleScale : titleScale}`}>{item.name}</h4>
+                    <div className="text-gray-500">{item.rank}</div>
+                  </div>
+                  <p className="text-gray-700">{item.contribution}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Custom Sections */}
+          {shouldRenderSection('custom') && resumeData.customSections && resumeData.customSections.length > 0 && (
+            <div>
+              {resumeData.customSections.map((section) => (
+                <div key={section.id} className={isPreview ? 'mb-0.5' : 'mb-6'}>
+                  <h3 className={`font-semibold text-gray-900 uppercase tracking-wide ${isPreview ? 'mb-0.5' : 'mb-3'}`}>
+                    {section.title}
+                  </h3>
+                  {section.items.map((item) => (
+                    <div key={item.id} className={isPreview ? 'mb-0.5' : 'mb-2'}>
+                      <p className="text-gray-700">{item.content}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
 
   const renderModernMinimalistTemplate = () => (
     <div className={`bg-white shadow-lg border-l-4 border-blue-500 ${isPreview ? 'w-full h-full' : 'max-w-[8.5in] mx-auto'} ${isPreview ? previewScale : baseScale}`}>

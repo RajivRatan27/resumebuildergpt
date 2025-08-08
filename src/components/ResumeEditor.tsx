@@ -1,8 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { ArrowLeft, Eye, Download, BarChart3, Sparkles, User, FileText as FileTextIcon, Briefcase, Award, BookOpen, Code, MessageSquare, PlusCircle, Menu, X, FileDown } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { ArrowLeft, Eye, Download, BarChart3, User, FileText as FileTextIcon, Briefcase, Award, BookOpen, Code, MessageSquare, PlusCircle, Menu, X, FileDown } from 'lucide-react';
 import { Template } from '../App';
 import ResumePreview from './ResumePreview';
-import AIAssistant from './AIAssistant';
 import DraggableContainer from './DraggableContainer';
 import DraggableSection from './DraggableSection';
 import { exportToPDF, exportToWord } from '../services/exportService';
@@ -180,12 +179,32 @@ const initialResumeData: ResumeData = {
 const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBack }) => {
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
   const [activeSection, setActiveSection] = useState<string>('summary');
-  const [showAI, setShowAI] = useState(false);
   const [atsScore] = useState(85); // Mock ATS score
   const [previewMode, setPreviewMode] = useState(false);
   const [showEditor, setShowEditor] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  useEffect(() => {
+    // Reset state when the template changes
+    setResumeData(initialResumeData);
+    setSectionOrder([
+      'personal',
+      'summary',
+      'experience',
+      'education',
+      'skills',
+      'projects',
+      'certifications',
+      'training',
+      'languages',
+      'leadership',
+      'publications',
+      'hackathons',
+      'custom'
+    ]);
+    setActiveSection('summary');
+  }, [template]);
   
   // Section order for drag and drop
   const [sectionOrder, setSectionOrder] = useState<string[]>([
@@ -198,6 +217,9 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
     'certifications',
     'training',
     'languages',
+    'leadership',
+    'publications',
+    'hackathons',
     'custom'
   ]);
 
@@ -205,6 +227,10 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
     setIsExporting(true);
     setShowExportMenu(false);
     try {
+      const resumePreviewElement = document.getElementById('resume-preview');
+      if (!resumePreviewElement) {
+        throw new Error('Resume preview element not found');
+      }
       await exportToPDF('resume-preview', `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.pdf`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -218,6 +244,10 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
     setIsExporting(true);
     setShowExportMenu(false);
     try {
+      const resumePreviewElement = document.getElementById('resume-preview');
+      if (!resumePreviewElement) {
+        throw new Error('Resume preview element not found');
+      }
       await exportToWord('resume-preview', `${resumeData.personalInfo.name.replace(/\s+/g, '_')}_Resume.doc`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -281,13 +311,7 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
 
 
   // --- EDUCATION HANDLERS ---
-  const handleEducationChange = useCallback((index: number, field: string, value: string) => {
-    setResumeData(prev => {
-      const newEducation = [...prev.education];
-      newEducation[index] = { ...newEducation[index], [field]: value };
-      return { ...prev, education: newEducation };
-    });
-  }, []);
+
 
   // --- SKILLS HANDLER ---
   const handleSkillsChange = useCallback((skills: string[]) => {
@@ -398,7 +422,7 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
     switch (sectionId) {
       case 'personal':
         return (
-          <DraggableSection key="personal" id="personal" className="mb-8">
+          <div>
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-blue-600" />
@@ -412,12 +436,12 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
               <input key="phone" type="tel" placeholder="Phone" value={resumeData.personalInfo.phone} onChange={(e) => handlePersonalInfoChange('phone', e.target.value)} className="w-full px-3 py-2 border rounded-lg"/>
             </div>
             <input key="location" type="text" placeholder="Location" value={resumeData.personalInfo.location} onChange={(e) => handlePersonalInfoChange('location', e.target.value)} className="w-full mt-4 px-3 py-2 border rounded-lg"/>
-          </DraggableSection>
+          </div>
         );
 
       case 'summary':
         return (
-          <DraggableSection key="summary" id="summary" className="mb-8">
+          <div>
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
                 <FileTextIcon className="w-4 h-4 text-purple-600" />
@@ -425,157 +449,145 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
               <h3 className="text-lg font-semibold text-gray-900">Professional Summary</h3>
             </div>
             <textarea key="summary" value={resumeData.summary} onChange={(e) => handleSummaryChange(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg resize-none" placeholder="Write a brief professional summary..."/>
-          </DraggableSection>
+          </div>
         );
 
       case 'experience':
         return (
-          <DraggableSection key="experience" id="experience" className="mb-8">
-            <SectionWrapper title="Experience" icon={<Briefcase className="w-4 h-4 text-green-600" />} onAddItem={addExperience} addItemText="Add Experience">
-              {resumeData.experience.map((exp, index) => (
-                <div key={exp.id} className="mb-4 p-4 border rounded-lg">
-                  <div className="flex justify-end mb-2">
-                    <button onClick={() => removeExperience(index)} className="text-red-600 text-sm">Remove</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <input key={`exp-${exp.id}-title`} type="text" placeholder="Job Title" value={exp.title} onChange={(e) => handleExperienceChange(index, 'title', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`exp-${exp.id}-company`} type="text" placeholder="Company" value={exp.company} onChange={(e) => handleExperienceChange(index, 'company', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`exp-${exp.id}-location`} type="text" placeholder="Location" value={exp.location} onChange={(e) => handleExperienceChange(index, 'location', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`exp-${exp.id}-startDate`} type="text" placeholder="Start Date" value={exp.startDate} onChange={(e) => handleExperienceChange(index, 'startDate', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`exp-${exp.id}-endDate`} type="text" placeholder="End Date" value={exp.current ? 'Present' : exp.endDate} onChange={(e) => handleExperienceChange(index, 'endDate', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Bullet Points</label>
-                    {exp.bullets.map((bullet, bIndex) => (
-                      <div key={`exp-${exp.id}-bullet-${bIndex}`} className="flex items-center space-x-2 mb-1">
-                        <input key={`exp-${exp.id}-bullet-input-${bIndex}`} type="text" value={bullet} onChange={(e) => handleExperienceBulletChange(index, bIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
-                        <button onClick={() => removeExperienceBullet(index, bIndex)} className="text-red-500 hover:text-red-700">X</button>
-                      </div>
-                    ))}
-                    <button onClick={() => addExperienceBullet(index)} className="text-blue-600 text-sm mt-1">+ Add Bullet</button>
-                  </div>
+          <SectionWrapper title="Experience" icon={<Briefcase className="w-4 h-4 text-green-600" />} onAddItem={addExperience} addItemText="Add Experience">
+            {resumeData.experience.map((exp, index) => (
+              <div key={exp.id} className="mb-4 p-4 border rounded-lg">
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => removeExperience(index)} className="text-red-600 text-sm">Remove</button>
                 </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input key={`exp-${exp.id}-title`} type="text" placeholder="Job Title" value={exp.title} onChange={(e) => handleExperienceChange(index, 'title', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`exp-${exp.id}-company`} type="text" placeholder="Company" value={exp.company} onChange={(e) => handleExperienceChange(index, 'company', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`exp-${exp.id}-location`} type="text" placeholder="Location" value={exp.location} onChange={(e) => handleExperienceChange(index, 'location', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`exp-${exp.id}-startDate`} type="text" placeholder="Start Date" value={exp.startDate} onChange={(e) => handleExperienceChange(index, 'startDate', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`exp-${exp.id}-endDate`} type="text" placeholder="End Date" value={exp.current ? 'Present' : exp.endDate} onChange={(e) => handleExperienceChange(index, 'endDate', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Bullet Points</label>
+                  {exp.bullets.map((bullet, bIndex) => (
+                    <div key={`exp-${exp.id}-bullet-${bIndex}`} className="flex items-center space-x-2 mb-1">
+                      <input key={`exp-${exp.id}-bullet-input-${bIndex}`} type="text" value={bullet} onChange={(e) => handleExperienceBulletChange(index, bIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
+                      <button onClick={() => removeExperienceBullet(index, bIndex)} className="text-red-500 hover:text-red-700">X</button>
+                    </div>
+                  ))}
+                  <button onClick={() => addExperienceBullet(index)} className="text-blue-600 text-sm mt-1">+ Add Bullet</button>
+                </div>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       case 'skills':
         return (
-          <DraggableSection key="skills" id="skills" className="mb-8">
+          <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Skills</h3>
             <input key="skills" type="text" value={resumeData.skills.join(', ')} onChange={(e) => handleSkillsChange(e.target.value.split(',').map(s => s.trim()))} className="w-full px-3 py-2 border rounded-lg" placeholder="JavaScript, React, Node.js..."/>
-          </DraggableSection>
+          </div>
         );
 
       case 'projects':
         return (
-          <DraggableSection key="projects" id="projects" className="mb-8">
-            <SectionWrapper title="Projects" icon={<Code className="w-4 h-4 text-indigo-600" />} onAddItem={() => addSectionItem('projects', { id: Date.now().toString(), name: 'New Project', tag: '', techStack: '', date: '', bullets: [''] })} addItemText="Add Project">
-              {resumeData.projects.map((proj, index) => (
-                <div key={proj.id} className="mb-4 p-4 border rounded-lg">
-                  <div className="flex justify-end mb-2">
-                    <button onClick={() => removeSectionItem('projects', index)} className="text-red-600 text-sm">Remove</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <input key={`proj-${proj.id}-name`} type="text" placeholder="Project Name" value={proj.name} onChange={(e) => handleSectionChange('projects', index, 'name', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`proj-${proj.id}-tag`} type="text" placeholder="Tag (e.g., AI/ML)" value={proj.tag} onChange={(e) => handleSectionChange('projects', index, 'tag', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`proj-${proj.id}-techStack`} type="text" placeholder="Tech Stack" value={proj.techStack} onChange={(e) => handleSectionChange('projects', index, 'techStack', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input key={`proj-${proj.id}-date`} type="text" placeholder="Date" value={proj.date} onChange={(e) => handleSectionChange('projects', index, 'date', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Bullet Points</label>
-                    {proj.bullets.map((bullet, bIndex) => (
-                      <div key={`proj-${proj.id}-bullet-${bIndex}`} className="flex items-center space-x-2 mb-1">
-                        <input key={`proj-${proj.id}-bullet-input-${bIndex}`} type="text" value={bullet} onChange={(e) => handleSectionBulletChange('projects', index, bIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
-                        <button onClick={() => removeSectionBullet('projects', index, bIndex)} className="text-red-500 hover:text-red-700">X</button>
-                      </div>
-                    ))}
-                    <button onClick={() => addSectionBullet('projects', index)} className="text-blue-600 text-sm mt-1">+ Add Bullet</button>
-                  </div>
+          <SectionWrapper title="Projects" icon={<Code className="w-4 h-4 text-indigo-600" />} onAddItem={() => addSectionItem('projects', { id: Date.now().toString(), name: 'New Project', tag: '', techStack: '', date: '', bullets: [''] })} addItemText="Add Project">
+            {resumeData.projects.map((proj, index) => (
+              <div key={proj.id} className="mb-4 p-4 border rounded-lg">
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => removeSectionItem('projects', index)} className="text-red-600 text-sm">Remove</button>
                 </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input key={`proj-${proj.id}-name`} type="text" placeholder="Project Name" value={proj.name} onChange={(e) => handleSectionChange('projects', index, 'name', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`proj-${proj.id}-tag`} type="text" placeholder="Tag (e.g., AI/ML)" value={proj.tag} onChange={(e) => handleSectionChange('projects', index, 'tag', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`proj-${proj.id}-techStack`} type="text" placeholder="Tech Stack" value={proj.techStack} onChange={(e) => handleSectionChange('projects', index, 'techStack', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input key={`proj-${proj.id}-date`} type="text" placeholder="Date" value={proj.date} onChange={(e) => handleSectionChange('projects', index, 'date', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Bullet Points</label>
+                  {proj.bullets.map((bullet, bIndex) => (
+                    <div key={`proj-${proj.id}-bullet-${bIndex}`} className="flex items-center space-x-2 mb-1">
+                      <input key={`proj-${proj.id}-bullet-input-${bIndex}`} type="text" value={bullet} onChange={(e) => handleSectionBulletChange('projects', index, bIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
+                      <button onClick={() => removeSectionBullet('projects', index, bIndex)} className="text-red-500 hover:text-red-700">X</button>
+                    </div>
+                  ))}
+                  <button onClick={() => addSectionBullet('projects', index)} className="text-blue-600 text-sm mt-1">+ Add Bullet</button>
+                </div>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       case 'certifications':
         return (
-          <DraggableSection key="certifications" id="certifications" className="mb-8">
-            <SectionWrapper title="Certifications" icon={<Award className="w-4 h-4 text-yellow-600" />} onAddItem={() => addSectionItem('certifications', { id: Date.now().toString(), name: '', issuer: '', year: '' })} addItemText="Add Certificate">
-              {resumeData.certifications.map((cert, index) => (
-                <div key={cert.id} className="mb-2 p-3 border rounded-lg">
-                  <div className="flex justify-end mb-2">
-                    <button onClick={() => removeSectionItem('certifications', index)} className="text-red-600 text-sm">Remove</button>
-                  </div>
-                  <input type="text" placeholder="Certificate Name" value={cert.name} onChange={(e) => handleSectionChange('certifications', index, 'name', e.target.value)} className="w-full p-2 border rounded-lg mb-2"/>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Issuing Organization" value={cert.issuer} onChange={(e) => handleSectionChange('certifications', index, 'issuer', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input type="text" placeholder="Year" value={cert.year} onChange={(e) => handleSectionChange('certifications', index, 'year', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                  </div>
+          <SectionWrapper title="Certifications" icon={<Award className="w-4 h-4 text-yellow-600" />} onAddItem={() => addSectionItem('certifications', { id: Date.now().toString(), name: '', issuer: '', year: '' })} addItemText="Add Certificate">
+            {resumeData.certifications.map((cert, index) => (
+              <div key={cert.id} className="mb-2 p-3 border rounded-lg">
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => removeSectionItem('certifications', index)} className="text-red-600 text-sm">Remove</button>
                 </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+                <input type="text" placeholder="Certificate Name" value={cert.name} onChange={(e) => handleSectionChange('certifications', index, 'name', e.target.value)} className="w-full p-2 border rounded-lg mb-2"/>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" placeholder="Issuing Organization" value={cert.issuer} onChange={(e) => handleSectionChange('certifications', index, 'issuer', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input type="text" placeholder="Year" value={cert.year} onChange={(e) => handleSectionChange('certifications', index, 'year', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                </div>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       case 'training':
         return (
-          <DraggableSection key="training" id="training" className="mb-8">
-            <SectionWrapper title="Training & Workshops" icon={<BookOpen className="w-4 h-4 text-green-600" />} onAddItem={() => addSectionItem('training', { id: Date.now().toString(), title: '', organizer: '', notes: '' })} addItemText="Add Training">
-              {resumeData.training.map((item, index) => (
-                <div key={item.id} className="mb-2 p-3 border rounded-lg">
-                  <div className="flex justify-end mb-2">
-                    <button onClick={() => removeSectionItem('training', index)} className="text-red-600 text-sm">Remove</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <input type="text" placeholder="Workshop Title" value={item.title} onChange={(e) => handleSectionChange('training', index, 'title', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                    <input type="text" placeholder="Organizer" value={item.organizer} onChange={(e) => handleSectionChange('training', index, 'organizer', e.target.value)} className="w-full p-2 border rounded-lg"/>
-                  </div>
-                  <textarea placeholder="Key takeaways or notes..." value={item.notes} onChange={(e) => handleSectionChange('training', index, 'notes', e.target.value)} className="w-full p-2 border rounded-lg resize-none" rows={2}/>
+          <SectionWrapper title="Training & Workshops" icon={<BookOpen className="w-4 h-4 text-green-600" />} onAddItem={() => addSectionItem('training', { id: Date.now().toString(), title: '', organizer: '', notes: '' })} addItemText="Add Training">
+            {resumeData.training.map((item, index) => (
+              <div key={item.id} className="mb-2 p-3 border rounded-lg">
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => removeSectionItem('training', index)} className="text-red-600 text-sm">Remove</button>
                 </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input type="text" placeholder="Workshop Title" value={item.title} onChange={(e) => handleSectionChange('training', index, 'title', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                  <input type="text" placeholder="Organizer" value={item.organizer} onChange={(e) => handleSectionChange('training', index, 'organizer', e.target.value)} className="w-full p-2 border rounded-lg"/>
+                </div>
+                <textarea placeholder="Key takeaways or notes..." value={item.notes} onChange={(e) => handleSectionChange('training', index, 'notes', e.target.value)} className="w-full p-2 border rounded-lg resize-none" rows={2}/>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       case 'languages':
         return (
-          <DraggableSection key="languages" id="languages" className="mb-8">
-            <SectionWrapper title="Languages" icon={<MessageSquare className="w-4 h-4 text-red-600" />} onAddItem={() => addSectionItem('languages', { id: Date.now().toString(), name: '', fluency: '' })} addItemText="Add Language">
-              {resumeData.languages.map((lang, index) => (
-                <div key={lang.id} className="flex items-center space-x-2 mb-2 p-2 border rounded-lg">
-                  <input type="text" placeholder="Language" value={lang.name} onChange={(e) => handleSectionChange('languages', index, 'name', e.target.value)} className="flex-1 p-2 border rounded-lg"/>
-                  <input type="text" placeholder="Fluency (e.g., Fluent, Native)" value={lang.fluency} onChange={(e) => handleSectionChange('languages', index, 'fluency', e.target.value)} className="flex-1 p-2 border rounded-lg"/>
-                  <button onClick={() => removeSectionItem('languages', index)} className="text-red-500 hover:text-red-700">X</button>
-                </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+          <SectionWrapper title="Languages" icon={<MessageSquare className="w-4 h-4 text-red-600" />} onAddItem={() => addSectionItem('languages', { id: Date.now().toString(), name: '', fluency: '' })} addItemText="Add Language">
+            {resumeData.languages.map((lang, index) => (
+              <div key={lang.id} className="flex items-center space-x-2 mb-2 p-2 border rounded-lg">
+                <input type="text" placeholder="Language" value={lang.name} onChange={(e) => handleSectionChange('languages', index, 'name', e.target.value)} className="flex-1 p-2 border rounded-lg"/>
+                <input type="text" placeholder="Fluency (e.g., Fluent, Native)" value={lang.fluency} onChange={(e) => handleSectionChange('languages', index, 'fluency', e.target.value)} className="flex-1 p-2 border rounded-lg"/>
+                <button onClick={() => removeSectionItem('languages', index)} className="text-red-500 hover:text-red-700">X</button>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       case 'custom':
         return (
-          <DraggableSection key="custom" id="custom" className="mb-8">
-            <SectionWrapper title="Custom Sections" icon={<PlusCircle className="w-4 h-4 text-purple-600" />} onAddItem={addCustomSection} addItemText="Add Custom Section">
-              {resumeData.customSections.map((section, sIndex) => (
-                <div key={section.id} className="mb-4 p-4 border border-purple-200 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <input type="text" value={section.title} onChange={(e) => handleCustomSectionTitleChange(sIndex, e.target.value)} className="text-md font-semibold border-b-2 border-purple-400 p-1 bg-transparent"/>
-                    <button onClick={() => removeSectionItem('customSections', sIndex)} className="text-red-600 text-sm">Remove Section</button>
-                  </div>
-                  {section.items.map((item, iIndex) => (
-                    <div key={item.id} className="flex items-center space-x-2 mb-2">
-                      <span className="text-purple-500">•</span>
-                      <input type="text" value={item.content} onChange={(e) => handleCustomSectionItemChange(sIndex, iIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
-                      <button onClick={() => removeCustomSectionItem(sIndex, iIndex)} className="text-red-500 hover:text-red-700">X</button>
-                    </div>
-                  ))}
-                  <button onClick={() => addCustomSectionItem(sIndex)} className="text-purple-600 text-sm mt-2">+ Add Item</button>
+          <SectionWrapper title="Custom Sections" icon={<PlusCircle className="w-4 h-4 text-purple-600" />} onAddItem={addCustomSection} addItemText="Add Custom Section">
+            {resumeData.customSections.map((section, sIndex) => (
+              <div key={section.id} className="mb-4 p-4 border border-purple-200 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <input type="text" value={section.title} onChange={(e) => handleCustomSectionTitleChange(sIndex, e.target.value)} className="text-md font-semibold border-b-2 border-purple-400 p-1 bg-transparent"/>
+                  <button onClick={() => removeSectionItem('customSections', sIndex)} className="text-red-600 text-sm">Remove Section</button>
                 </div>
-              ))}
-            </SectionWrapper>
-          </DraggableSection>
+                {section.items.map((item, iIndex) => (
+                  <div key={item.id} className="flex items-center space-x-2 mb-2">
+                    <span className="text-purple-500">•</span>
+                    <input type="text" value={item.content} onChange={(e) => handleCustomSectionItemChange(sIndex, iIndex, e.target.value)} className="flex-1 px-2 py-1 border rounded"/>
+                    <button onClick={() => removeCustomSectionItem(sIndex, iIndex)} className="text-red-500 hover:text-red-700">X</button>
+                  </div>
+                ))}
+                <button onClick={() => addCustomSectionItem(sIndex)} className="text-purple-600 text-sm mt-2">+ Add Item</button>
+              </div>
+            ))}
+          </SectionWrapper>
         );
 
       default:
@@ -675,7 +687,7 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
                   resumeData={resumeData}
                   onUpdateResumeData={setResumeData}
                   activeSection={activeSection}
-                  editMode={true}
+                  editMode={!previewMode}
                   sectionOrder={sectionOrder}
                 />
               </div>
@@ -690,9 +702,15 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ template, jobDetails, onBac
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Resume Information</h2>
               <p className="text-gray-600 mb-8">Fill out your information and see your resume update in real-time. Sections can be reordered by dragging in the preview.</p>
 
-              <div className="space-y-8">
-                {sectionOrder.map((sectionId) => renderSection(sectionId))}
-              </div>
+              <DraggableContainer items={sectionOrder} onReorder={handleSectionReorder}>
+                <div className="space-y-8">
+                  {sectionOrder.map((sectionId) => (
+                    <DraggableSection key={sectionId} id={sectionId} className="mb-8">
+                      {renderSection(sectionId)}
+                    </DraggableSection>
+                  ))}
+                </div>
+              </DraggableContainer>
             </div>
           </div>
         )}

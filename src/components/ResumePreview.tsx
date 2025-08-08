@@ -20,7 +20,7 @@ interface ResumePreviewProps {
 const ResumePreview: React.FC<ResumePreviewProps> = ({ template, resumeData, onUpdateResumeData, activeSection, editMode, sectionOrder }) => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [localSectionOrder, setLocalSectionOrder] = useState<string[]>(
-    sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'languages', 'custom']
+    sectionOrder || ['personal', 'summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'training', 'languages', 'leadership', 'publications', 'hackathons', 'custom']
   );
   
   useEffect(() => {
